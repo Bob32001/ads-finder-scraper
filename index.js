@@ -21,12 +21,8 @@ if (!BROWSER_WEBSOCKET) {
       timeout: 90000
     });
 
-    console.log("✅ Page loaded. Scrolling...");
-    await page.evaluate(() => {
-      window.scrollBy(0, window.innerHeight);
-    });
-
-    await new Promise(resolve => setTimeout(resolve, 3000));
+    console.log("✅ Page loaded. Waiting for ads to load...");
+    await page.waitForSelector('div[role="listitem"]', { timeout: 60000 });
 
     console.log("🔎 Extracting ads...");
     const ads = await page.$$eval('div[role="listitem"]', items =>
@@ -48,6 +44,7 @@ if (!BROWSER_WEBSOCKET) {
     process.exit(1);
   }
 })();
+
 
 
 

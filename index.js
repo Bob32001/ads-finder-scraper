@@ -25,7 +25,9 @@ if (!BROWSER_WEBSOCKET) {
     await page.evaluate(() => {
       window.scrollBy(0, window.innerHeight);
     });
-    await page.waitForTimeout(3000); // aguarda mais conteúdo carregar
+
+    // ⏱ Espera alternativa de 3 segundos
+    await new Promise(resolve => setTimeout(resolve, 3000));
 
     console.log("🔎 Extracting ads...");
     const ads = await page.$$eval('div[data-pagelet^="FeedUnit_"]', items =>

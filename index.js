@@ -10,47 +10,31 @@ if (!BROWSER_WEBSOCKET) {
 (async () => {
   try {
     console.log("🔌 Connecting to Bright Data...");
-    const browser = await puppeteer.connect({
-      browserWSEndpoint: BROWSER_WEBSOCKET,
-    });
+    const browser = await puppeteer.connect({ browserWSEndpoint: BROWSER_WEBSOCKET });
 
     const page = await browser.newPage();
     console.log("🌐 Navigating to Meta Ads Library...");
     await page.goto('https://www.facebook.com/ads/library/?active_status=all&ad_type=all&country=ALL&q=pix&search_type=keyword_unordered', {
-      waitUntil: 'networkidle2',
-      timeout: 90000
+      waitUntil: 'domcontentloaded',
+      timeout: 60000
     });
 
     console.log("✅ Page loaded. Scrolling...");
-
-    // Scroll até o fim para forçar os anúncios a carregarem
-    await page.evaluate(async () => {
-      await new Promise((resolve) => {
-        let totalHeight = 0;
-        const distance = 100;
-        const timer = setInterval(() => {
-          window.scrollBy(0, distance);
-          totalHeight += distance;
-
-          if (totalHeight > 1500) {
-            clearInterval(timer);
-            resolve();
-          }
-        }, 200);
-      });
+    await page.evaluate(() => {
+      window.scrollBy(0, window.innerHeight * 3);
     });
 
     console.log("🔎 Waiting for ads...");
-    await page.waitForSelector('div[role="listitem"]', { timeout: 60000 });
+    await page.waitForTimeout(30000); // Aguarda 30 segundos
 
     const ads = await page.$$eval('div[role="listitem"]', items =>
       items.slice(0, 25).map(ad => ({
-        text: ad.innerText,
-        html: ad.innerHTML,
+        title: ad.innerText || null,
+        link: window.location.href,
       }))
     );
 
-    if (ads.length === 0) {
+    if (!ads.length) {
       console.warn("⚠️ No ads extracted.");
     } else {
       console.log("📦 Ads extracted:", ads);

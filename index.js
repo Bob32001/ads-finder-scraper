@@ -1,60 +1,60 @@
-import puppeteer from 'puppeteer-core';
+const puppeteer = require("puppeteer");
 
-const BROWSER_WEBSOCKET = process.env.BRIGHTDATA_PROXY_URL;
-
-if (!BROWSER_WEBSOCKET) {
-  console.error("❌ Variável de ambiente BRIGHTDATA_PROXY_URL não definida.");
-  process.exit(1);
-}
+const BRIGHT_DATA_PROXY = process.env.BRIGHT_DATA_PROXY;
+const KEYWORD = process.env.KEYWORD || "píxel"; // ou substitua diretamente aqui
+const MAX_WAIT_TIME_MS = 90000; // espera máxima de 90 segundos
 
 (async () => {
+  console.log("🔌 Connecting to Bright Data...");
+  const browser = await puppeteer.connect({
+    browserWSEndpoint: BRIGHT_DATA_PROXY,
+    protocolTimeout: MAX_WAIT_TIME_MS,
+  });
+
+  const page = await browser.newPage();
+
+  console.log("🌐 Navigating to Meta Ads Library...");
+  const url = `https://www.facebook.com/ads/library/?active_status=all&ad_type=all&country=BR&q=${encodeURIComponent(
+    KEYWORD
+  )}&search_type=keyword_unordered`;
+  await page.goto(url, { waitUntil: "domcontentloaded", timeout: 60000 });
+
+  console.log("✅ Page loaded. Scrolling...");
+  await page.evaluate(() => {
+    window.scrollBy(0, window.innerHeight);
+  });
+
+  console.log("🔎 Waiting for ads...");
+  let ads = [];
+  let attempts = 0;
+
   try {
-    console.log("🔌 Connecting to Bright Data...");
-    const browser = await puppeteer.connect({ browserWSEndpoint: BROWSER_WEBSOCKET });
-    const page = await browser.newPage();
-
-    console.log("🌐 Navigating to Meta Ads Library...");
-    await page.goto(
-      'https://www.facebook.com/ads/library/?active_status=all&ad_type=all&country=ALL&q=pix&search_type=keyword_unordered',
-      { waitUntil: 'domcontentloaded', timeout: 60000 }
-    );
-
-    console.log("✅ Page loaded. Scrolling...");
-    const start = Date.now();
-    while (Date.now() - start < 40000) {
-      await page.evaluate(() => window.scrollBy(0, window.innerHeight));
-      await new Promise(resolve => setTimeout(resolve, 1000));
+    while (ads.length === 0 && attempts < 15) {
+      try {
+        await page.waitForSelector('div[role="listitem"]', {
+          timeout: 6000,
+        });
+        ads = await page.$$eval('div[role="listitem"]', (nodes) =>
+          nodes.map((el) => el.innerText.trim())
+        );
+      } catch {
+        console.log(`⏳ Esperando anúncios... tentativa ${attempts + 1}`);
+      }
+      attempts++;
     }
 
-    console.log("🔎 Waiting for ads...");
-    const maxTries = 15;
-    let adsFound = false;
-
-    for (let i = 0; i < maxTries; i++) {
-      adsFound = await page.$('div[role="listitem"]');
-      if (adsFound) break;
-      console.log(`⏳ Esperando anúncios... tentativa ${i + 1}`);
-      await new Promise(resolve => setTimeout(resolve, 3000));
+    if (ads.length === 0) {
+      console.log("⚠️ No ads extracted.");
+      const html = await page.content();
+      console.log("📄 Dumping HTML:");
+      console.log(html.slice(0, 5000)); // só os primeiros 5000 caracteres
+    } else {
+      console.log(`📦 Ads extracted: ${ads.length}`);
+      console.log(ads);
     }
-
-    if (!adsFound) {
-      console.warn("⚠️ No ads extracted.");
-    }
-
-    const ads = await page.$$eval('div[role="listitem"]', items =>
-      items.slice(0, 25).map(ad => ({
-        title: ad.innerText || null,
-        link: window.location.href,
-      }))
-    );
-
-    console.log(`📦 Ads extracted: ${ads.length}`);
-    console.log(JSON.stringify(ads, null, 2));
-
+  } catch (error) {
+    console.error("❌ Scraping error:", error.message);
+  } finally {
     await browser.close();
-  } catch (err) {
-    console.error("❌ Scraping error:", err.message);
-    process.exit(1);
   }
 })();
-

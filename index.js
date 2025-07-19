@@ -21,14 +21,32 @@ if (!BROWSER_WEBSOCKET) {
       timeout: 90000
     });
 
-    console.log("✅ Page loaded. Waiting for ads to load...");
+    console.log("✅ Page loaded. Scrolling...");
+
+    // Scroll até o fim para forçar os anúncios a carregarem
+    await page.evaluate(async () => {
+      await new Promise((resolve) => {
+        let totalHeight = 0;
+        const distance = 100;
+        const timer = setInterval(() => {
+          window.scrollBy(0, distance);
+          totalHeight += distance;
+
+          if (totalHeight > 1500) {
+            clearInterval(timer);
+            resolve();
+          }
+        }, 200);
+      });
+    });
+
+    console.log("🔎 Waiting for ads...");
     await page.waitForSelector('div[role="listitem"]', { timeout: 60000 });
 
-    console.log("🔎 Extracting ads...");
     const ads = await page.$$eval('div[role="listitem"]', items =>
       items.slice(0, 25).map(ad => ({
         text: ad.innerText,
-        html: ad.innerHTML
+        html: ad.innerHTML,
       }))
     );
 
@@ -44,7 +62,6 @@ if (!BROWSER_WEBSOCKET) {
     process.exit(1);
   }
 })();
-
 
 
 

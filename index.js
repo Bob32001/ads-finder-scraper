@@ -39,4 +39,3 @@ import chromium from 'chrome-aws-lambda';
   await browser.close();
 })();
 
-

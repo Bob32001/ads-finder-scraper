@@ -1,30 +1,31 @@
 import puppeteer from 'puppeteer-core';
-import fs from 'fs';
 
 const BROWSER_WEBSOCKET = process.env.BRIGHTDATA_PROXY_URL;
 
 if (!BROWSER_WEBSOCKET) {
-  console.error("❌ Variável de ambiente BRIGHTDATA_PROXY_URL não definida.");
+  console.error("❌ BRIGHTDATA_PROXY_URL not set.");
   process.exit(1);
 }
 
 (async () => {
+  let browser;
   try {
-    console.log("🔌 Conectando ao Bright Data Browser API...");
-    const browser = await puppeteer.connect({
+    console.log("🔌 Connecting to Bright Data...");
+    browser = await puppeteer.connect({
       browserWSEndpoint: BROWSER_WEBSOCKET,
+      protocolTimeout: 120000,
     });
 
     const page = await browser.newPage();
 
+    console.log("🌐 Navigating to Meta Ads Library...");
     await page.goto('https://www.facebook.com/ads/library/?active_status=all&ad_type=all&country=ALL&q=pix&search_type=keyword_unordered', {
       waitUntil: 'networkidle2',
-      timeout: 60000
+      timeout: 60000,
     });
 
-    console.log("✅ Página carregada com sucesso.");
+    console.log("✅ Page loaded. Scrolling...");
 
-    // Scroll para forçar o carregamento dos anúncios
     await page.evaluate(async () => {
       await new Promise((resolve) => {
         let totalHeight = 0;
@@ -32,8 +33,7 @@ if (!BROWSER_WEBSOCKET) {
         const timer = setInterval(() => {
           window.scrollBy(0, distance);
           totalHeight += distance;
-
-          if (totalHeight >= document.body.scrollHeight) {
+          if (totalHeight >= document.body.scrollHeight / 2) { // menor scroll
             clearInterval(timer);
             resolve();
           }
@@ -41,32 +41,29 @@ if (!BROWSER_WEBSOCKET) {
       });
     });
 
-    // Espera mais um pouco após o scroll
-    await page.waitForTimeout(5000);
+    await page.waitForTimeout(4000);
 
-    // Tira um screenshot para debug
-    await page.screenshot({ path: 'screenshot.png', fullPage: true });
-    console.log("📸 Screenshot salvo.");
-
-    // Agora tenta localizar os anúncios
+    console.log("🔍 Looking for ads...");
     await page.waitForSelector('div[role="listitem"]', { timeout: 60000 });
 
     const ads = await page.$$eval('div[role="listitem"]', items =>
-      items.slice(0, 50).map(ad => ({
+      items.slice(0, 25).map(ad => ({
         title: ad.innerText || null,
         link: window.location.href,
       }))
     );
 
     if (ads.length === 0) {
-      console.warn("⚠️ Nenhum anúncio encontrado.");
+      console.warn("⚠️ No ads found.");
     } else {
-      console.log("📦 Anúncios extraídos:", ads);
+      console.log("📦 Ads found:", ads);
     }
 
     await browser.close();
   } catch (err) {
-    console.error("❌ Erro durante o scraping:", err.message);
+    console.error("❌ Error:", err.message);
+    if (browser) await browser.close();
     process.exit(1);
   }
 })();
+

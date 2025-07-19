@@ -21,15 +21,21 @@ if (!BROWSER_WEBSOCKET) {
 
     console.log("✅ Page loaded. Scrolling...");
     const start = Date.now();
-    while (Date.now() - start < 20000) {
+    while (Date.now() - start < 40000) {
       await page.evaluate(() => window.scrollBy(0, window.innerHeight));
       await new Promise(resolve => setTimeout(resolve, 1000));
     }
 
     console.log("🔎 Waiting for ads...");
-    const adsFound = await page.waitForSelector('div[role="listitem"]', {
-      timeout: 20000
-    }).then(() => true).catch(() => false);
+    const maxTries = 15;
+    let adsFound = false;
+
+    for (let i = 0; i < maxTries; i++) {
+      adsFound = await page.$('div[role="listitem"]');
+      if (adsFound) break;
+      console.log(`⏳ Esperando anúncios... tentativa ${i + 1}`);
+      await new Promise(resolve => setTimeout(resolve, 3000));
+    }
 
     if (!adsFound) {
       console.warn("⚠️ No ads extracted.");
@@ -42,7 +48,7 @@ if (!BROWSER_WEBSOCKET) {
       }))
     );
 
-    console.log("📦 Ads extracted:", ads.length);
+    console.log(`📦 Ads extracted: ${ads.length}`);
     console.log(JSON.stringify(ads, null, 2));
 
     await browser.close();

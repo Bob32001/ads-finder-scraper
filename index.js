@@ -15,20 +15,31 @@ if (!BROWSER_WEBSOCKET) {
     });
 
     const page = await browser.newPage();
-
-    const url = 'https://www.facebook.com/ads/library/?active_status=all&ad_type=all&country=ALL&q=pix&search_type=keyword_unordered';
     console.log("🌐 Navigating to Meta Ads Library...");
-    await page.goto(url, {
+    await page.goto('https://www.facebook.com/ads/library/?active_status=all&ad_type=all&country=ALL&q=pix&search_type=keyword_unordered', {
       waitUntil: 'networkidle2',
-      timeout: 60000
+      timeout: 90000
     });
 
     console.log("✅ Page loaded. Scrolling...");
-    await page.evaluate(() => window.scrollBy(0, window.innerHeight));
+    await page.evaluate(() => {
+      window.scrollBy(0, window.innerHeight);
+    });
+    await page.waitForTimeout(3000); // aguarda mais conteúdo carregar
 
-    console.log("🧠 Dumping HTML content...");
-    const html = await page.content();
-    console.log("📄 HTML content:\n", html);
+    console.log("🔎 Extracting ads...");
+    const ads = await page.$$eval('div[data-pagelet^="FeedUnit_"]', items =>
+      items.slice(0, 25).map(ad => ({
+        text: ad.innerText,
+        html: ad.innerHTML,
+      }))
+    );
+
+    if (ads.length === 0) {
+      console.warn("⚠️ No ads extracted.");
+    } else {
+      console.log("📦 Ads extracted:", ads);
+    }
 
     await browser.close();
   } catch (err) {
@@ -36,5 +47,4 @@ if (!BROWSER_WEBSOCKET) {
     process.exit(1);
   }
 })();
-
 

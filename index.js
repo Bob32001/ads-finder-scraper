@@ -23,14 +23,19 @@ if (!BROWSER_WEBSOCKET) {
     console.log("✅ Página carregada com sucesso.");
 
     // Espera até que os anúncios carreguem
-    await page.waitForSelector('div[role="listitem"]', { timeout: 45000 });
+ try {
+  await page.waitForSelector('[data-testid="ad-review-creative"]', { timeout: 45000 });
+} catch (e) {
+  console.warn("⚠️ Nenhum anúncio encontrado dentro do tempo esperado.");
+}
 
-    const ads = await page.$$eval('div[role="listitem"]', items =>
-      items.slice(0, 50).map(ad => ({
-        title: ad.innerText || null,
-        link: window.location.href,
-      }))
-    );
+const ads = await page.$$eval('[data-testid="ad-review-creative"]', items =>
+  items.slice(0, 50).map(ad => ({
+    title: ad.innerText || null,
+    link: window.location.href,
+  }))
+);
+
 
     console.log("📦 Anúncios extraídos:", ads);
     await browser.close();

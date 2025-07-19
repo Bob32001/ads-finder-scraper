@@ -25,7 +25,7 @@ if (!BROWSER_WEBSOCKET) {
     });
 
     console.log("🔎 Waiting for ads...");
-    await page.waitForTimeout(30000); // Aguarda 30 segundos
+    await new Promise(resolve => setTimeout(resolve, 30000)); // Espera 30 segundos
 
     const ads = await page.$$eval('div[role="listitem"]', items =>
       items.slice(0, 25).map(ad => ({
@@ -46,6 +46,5 @@ if (!BROWSER_WEBSOCKET) {
     process.exit(1);
   }
 })();
-
 
 

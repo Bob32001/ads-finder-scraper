@@ -3,7 +3,7 @@ import puppeteer from 'puppeteer-core';
 const BROWSER_WEBSOCKET = process.env.BRIGHTDATA_PROXY_URL;
 
 if (!BROWSER_WEBSOCKET) {
-  console.error("❌ Environment variable BRIGHTDATA_PROXY_URL not defined.");
+  console.error("❌ Variável de ambiente BRIGHTDATA_PROXY_URL não definida.");
   process.exit(1);
 }
 
@@ -19,43 +19,42 @@ if (!BROWSER_WEBSOCKET) {
     console.log("🌐 Navigating to Meta Ads Library...");
     await page.goto('https://www.facebook.com/ads/library/?active_status=all&ad_type=all&country=ALL&q=pix&search_type=keyword_unordered', {
       waitUntil: 'networkidle2',
-      timeout: 60000,
+      timeout: 60000
     });
 
     console.log("✅ Page loaded. Scrolling...");
-    await page.evaluate(async () => {
-      await new Promise((resolve) => {
-        let totalHeight = 0;
-        const distance = 300;
-        const timer = setInterval(() => {
-          window.scrollBy(0, distance);
-          totalHeight += distance;
-          if (totalHeight >= 2000) {
-            clearInterval(timer);
-            resolve();
-          }
-        }, 300);
-      });
+    await page.evaluate(() => {
+      window.scrollBy(0, 6000);
     });
+    await page.waitForTimeout(5000); // Aguarda 5 segundos após scroll
+
+    console.log("🧪 Dumping HTML for debug...");
+    const html = await page.content();
+    console.log(html); // HTML completo da página
 
     console.log("🔎 Extracting ads...");
+    let ads = await page.$$eval('div[role="listitem"]', items =>
+      items.slice(0, 25).map(ad => ({
+        text: ad.innerText || null,
+        link: window.location.href,
+      }))
+    );
 
-    let ads = [];
-    try {
-      ads = await page.$$eval('div[role="listitem"]', items =>
+    // Tenta seletor alternativo se nada for encontrado
+    if (ads.length === 0) {
+      console.warn("⚠️ Nenhum anúncio via 'div[role=\"listitem\"]'. Tentando seletor alternativo...");
+      ads = await page.$$eval('a[href*="/ads/library/"]', items =>
         items.slice(0, 25).map(ad => ({
-          title: ad.innerText || null,
-          link: window.location.href,
+          text: ad.innerText || null,
+          href: ad.href || null,
         }))
       );
-    } catch (innerErr) {
-      console.warn("⚠️ Fallback: Could not find any ads, selector missing.");
     }
 
-    if (!ads.length) {
-      console.warn("⚠️ No ads extracted.");
+    if (ads.length === 0) {
+      console.warn("⚠️ Nenhum anúncio extraído.");
     } else {
-      console.log("📦 Ads extracted:", ads);
+      console.log("📦 Anúncios extraídos:", ads);
     }
 
     await browser.close();

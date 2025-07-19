@@ -26,11 +26,11 @@ if (!BROWSER_WEBSOCKET) {
     await page.evaluate(() => {
       window.scrollBy(0, 6000);
     });
-    await page.waitForTimeout(5000); // Aguarda 5 segundos após scroll
+    await new Promise(resolve => setTimeout(resolve, 5000)); // substitui waitForTimeout
 
     console.log("🧪 Dumping HTML for debug...");
     const html = await page.content();
-    console.log(html); // HTML completo da página
+    console.log(html);
 
     console.log("🔎 Extracting ads...");
     let ads = await page.$$eval('div[role="listitem"]', items =>
@@ -40,7 +40,6 @@ if (!BROWSER_WEBSOCKET) {
       }))
     );
 
-    // Tenta seletor alternativo se nada for encontrado
     if (ads.length === 0) {
       console.warn("⚠️ Nenhum anúncio via 'div[role=\"listitem\"]'. Tentando seletor alternativo...");
       ads = await page.$$eval('a[href*="/ads/library/"]', items =>

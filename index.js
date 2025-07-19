@@ -26,11 +26,11 @@ if (!BROWSER_WEBSOCKET) {
     await page.evaluate(async () => {
       await new Promise((resolve) => {
         let totalHeight = 0;
-        const distance = 200;
+        const distance = 300;
         const timer = setInterval(() => {
           window.scrollBy(0, distance);
           totalHeight += distance;
-          if (totalHeight >= document.body.scrollHeight / 2) {
+          if (totalHeight >= 2000) {
             clearInterval(timer);
             resolve();
           }
@@ -38,24 +38,26 @@ if (!BROWSER_WEBSOCKET) {
       });
     });
 
-    // Pause briefly to allow lazy-loaded content to appear
-    await new Promise(resolve => setTimeout(resolve, 4000));
-
     console.log("🔎 Extracting ads...");
-    await page.waitForSelector('div[role="listitem"]', { timeout: 60000 }); // tempo aumentado aqui
 
-    const ads = await page.$$eval('div[role="listitem"]', items =>
-      items.slice(0, 25).map(ad => ({
-        title: ad.innerText || null,
-        link: window.location.href,
-      }))
-    );
-
-    if (ads.length === 0) {
-      console.warn("⚠️ No ads found in time.");
+    let ads = [];
+    try {
+      ads = await page.$$eval('div[role="listitem"]', items =>
+        items.slice(0, 25).map(ad => ({
+          title: ad.innerText || null,
+          link: window.location.href,
+        }))
+      );
+    } catch (innerErr) {
+      console.warn("⚠️ Fallback: Could not find any ads, selector missing.");
     }
 
-    console.log("📦 Extracted ads:", ads);
+    if (!ads.length) {
+      console.warn("⚠️ No ads extracted.");
+    } else {
+      console.log("📦 Ads extracted:", ads);
+    }
+
     await browser.close();
   } catch (err) {
     console.error("❌ Scraping error:", err.message);

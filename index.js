@@ -35,3 +35,4 @@ import { chromium } from "playwright";
 
   await browser.close();
 })();
+

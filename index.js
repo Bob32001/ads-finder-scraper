@@ -8,14 +8,14 @@ if (!BROWSER_WEBSOCKET) {
 }
 
 (async () => {
-  let browser;
-  let page;
-
   try {
     console.log("🔌 Conectando ao Bright Data Browser API...");
-    browser = await puppeteer.connect({ browserWSEndpoint: BROWSER_WEBSOCKET });
+    const browser = await puppeteer.connect({
+      browserWSEndpoint: BROWSER_WEBSOCKET,
+    });
 
-    page = await browser.newPage();
+    const page = await browser.newPage();
+
     await page.goto('https://www.facebook.com/ads/library/?active_status=all&ad_type=all&country=ALL&q=pix&search_type=keyword_unordered', {
       waitUntil: 'networkidle2',
       timeout: 60000
@@ -23,40 +23,43 @@ if (!BROWSER_WEBSOCKET) {
 
     console.log("✅ Página carregada com sucesso.");
 
-    try {
-      await page.waitForSelector('[data-testid="ad-review-creative"]', { timeout: 45000 });
-    } catch (e) {
-      console.warn("⚠️ Nenhum anúncio encontrado dentro do tempo esperado.");
-    }
+    // Scroll até o fim da página para carregar os anúncios
+    await page.evaluate(async () => {
+      await new Promise((resolve) => {
+        let totalHeight = 0;
+        const distance = 200;
+        const timer = setInterval(() => {
+          window.scrollBy(0, distance);
+          totalHeight += distance;
 
-    const ads = await page.$$eval('[data-testid="ad-review-creative"]', items =>
+          if (totalHeight >= document.body.scrollHeight) {
+            clearInterval(timer);
+            resolve();
+          }
+        }, 500);
+      });
+    });
+
+    // Espera os anúncios aparecerem
+    await page.waitForSelector('div[role="listitem"]', { timeout: 60000 });
+
+    const ads = await page.$$eval('div[role="listitem"]', items =>
       items.slice(0, 50).map(ad => ({
         title: ad.innerText || null,
         link: window.location.href,
       }))
     );
 
-    console.log("📦 Anúncios extraídos:", ads);
-
-    const html = await page.content();
-    console.log("🧾 HTML da página:");
-    console.log(html);
-
-    await browser.close();
-    process.exit(0);
-
-  } catch (err) {
-    console.error("❌ Erro durante o scraping:", err.message);
-
-    if (typeof page !== 'undefined') {
-      const html = await page.content();
-      console.log("🧾 HTML da página (erro):");
-      console.log(html);
+    if (ads.length === 0) {
+      console.warn("⚠️ Nenhum anúncio encontrado.");
+    } else {
+      console.log("📦 Anúncios extraídos:", ads);
     }
 
-    if (browser) await browser.close();
+    await browser.close();
+  } catch (err) {
+    console.error("❌ Erro durante o scraping:", err.message);
     process.exit(1);
   }
 })();
-
 

@@ -1,8 +1,12 @@
 {
   "name": "ads-finder-scraper",
   "version": "1.0.0",
-  "type": "module",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
   "dependencies": {
-    "puppeteer-core": "^22.0.0"
+    "puppeteer": "^21.3.8"
   }
 }

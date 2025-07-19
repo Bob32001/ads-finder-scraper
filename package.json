@@ -1,6 +1,7 @@
 {
   "type": "module",
   "dependencies": {
-    "playwright-core": "^1.43.1"
+    "puppeteer-core": "^22.5.0",
+    "chrome-aws-lambda": "^10.1.0"
   }
 }

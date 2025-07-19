@@ -1,4 +1,5 @@
 import puppeteer from 'puppeteer-core';
+import fs from 'fs';
 
 const BROWSER_WEBSOCKET = process.env.BRIGHTDATA_PROXY_URL;
 
@@ -23,7 +24,7 @@ if (!BROWSER_WEBSOCKET) {
 
     console.log("✅ Página carregada com sucesso.");
 
-    // Scroll até o fim da página para carregar os anúncios
+    // Scroll para forçar o carregamento dos anúncios
     await page.evaluate(async () => {
       await new Promise((resolve) => {
         let totalHeight = 0;
@@ -36,11 +37,18 @@ if (!BROWSER_WEBSOCKET) {
             clearInterval(timer);
             resolve();
           }
-        }, 500);
+        }, 300);
       });
     });
 
-    // Espera os anúncios aparecerem
+    // Espera mais um pouco após o scroll
+    await page.waitForTimeout(5000);
+
+    // Tira um screenshot para debug
+    await page.screenshot({ path: 'screenshot.png', fullPage: true });
+    console.log("📸 Screenshot salvo.");
+
+    // Agora tenta localizar os anúncios
     await page.waitForSelector('div[role="listitem"]', { timeout: 60000 });
 
     const ads = await page.$$eval('div[role="listitem"]', items =>
@@ -62,4 +70,3 @@ if (!BROWSER_WEBSOCKET) {
     process.exit(1);
   }
 })();
-

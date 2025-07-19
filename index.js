@@ -1,19 +1,21 @@
-import { chromium } from "playwright-core";
+import puppeteer from 'puppeteer-core';
+import chromium from 'chrome-aws-lambda';
 
 (async () => {
-  console.log("🔌 Conectando via Playwright...");
+  console.log("🔌 Iniciando browser com chrome-aws-lambda...");
 
-  const browser = await chromium.launch({
-    headless: true,
-    args: ['--no-sandbox', '--disable-setuid-sandbox']
+  const browser = await puppeteer.launch({
+    args: chromium.args,
+    executablePath: await chromium.executablePath,
+    headless: chromium.headless
   });
 
   const page = await browser.newPage();
 
   console.log("🌐 Acessando Meta Ads Library...");
   await page.goto("https://www.facebook.com/ads/library/?active_status=all&ad_type=all&country=BR", {
-    timeout: 60000,
-    waitUntil: "domcontentloaded"
+    waitUntil: "domcontentloaded",
+    timeout: 60000
   });
 
   console.log("✅ Página carregada. Esperando anúncios...");
@@ -28,11 +30,12 @@ import { chromium } from "playwright-core";
       });
     });
 
-    console.log(`📦 Ads extraídos: ${ads.length}`);
+    console.log(`📦 Anúncios extraídos: ${ads.length}`);
     console.log(JSON.stringify(ads, null, 2));
-  } catch (e) {
-    console.error("❌ Erro ao extrair anúncios:", e.message);
+  } catch (err) {
+    console.error("❌ Erro ao extrair anúncios:", err.message);
   }
 
   await browser.close();
 })();
+

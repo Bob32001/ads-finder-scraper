@@ -22,25 +22,19 @@ if (!BROWSER_WEBSOCKET) {
 
     console.log("✅ Página carregada com sucesso.");
 
-    // Espera até que os anúncios carreguem
- try {
-  await page.waitForSelector('[data-testid="ad-review-creative"]', { timeout: 45000 });
-} catch (e) {
-  console.warn("⚠️ Nenhum anúncio encontrado dentro do tempo esperado.");
-}
+// Espera até que pelo menos um dos anúncios apareça no DOM
+await page.waitForFunction(() => {
+  return (
+    document.querySelectorAll('div[role="listitem"]').length > 0 ||
+    document.querySelectorAll('[data-testid="ad-review-creative"]').length > 0
+  );
+}, { timeout: 45000 });
 
-const ads = await page.$$eval('[data-testid="ad-review-creative"]', items =>
-  items.slice(0, 50).map(ad => ({
+const ads = await page.evaluate(() => {
+  const list = Array.from(document.querySelectorAll('[data-testid="ad-review-creative"], div[role="listitem"]'));
+  return list.slice(0, 50).map(ad => ({
     title: ad.innerText || null,
-    link: window.location.href,
-  }))
-);
+    link: location.href
+  }));
+});
 
-
-    console.log("📦 Anúncios extraídos:", ads);
-    await browser.close();
-  } catch (err) {
-    console.error("❌ Erro durante o scraping:", err.message);
-    process.exit(1);
-  }
-})();

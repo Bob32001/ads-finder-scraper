@@ -42,7 +42,7 @@ if (!BROWSER_WEBSOCKET) {
     await new Promise(resolve => setTimeout(resolve, 4000));
 
     console.log("🔎 Extracting ads...");
-    await page.waitForSelector('div[role="listitem"]', { timeout: 45000 });
+    await page.waitForSelector('div[role="listitem"]', { timeout: 60000 }); // tempo aumentado aqui
 
     const ads = await page.$$eval('div[role="listitem"]', items =>
       items.slice(0, 25).map(ad => ({
@@ -62,3 +62,4 @@ if (!BROWSER_WEBSOCKET) {
     process.exit(1);
   }
 })();
+

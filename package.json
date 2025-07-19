@@ -1,13 +1,11 @@
 {
   "name": "ads-finder-scraper",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
   "type": "module",
   "scripts": {
     "start": "node index.js"
   },
   "dependencies": {
-    "puppeteer-core": "^21.3.8"
+    "playwright-core": "^1.44.1"
   }
 }

@@ -26,14 +26,13 @@ if (!BROWSER_WEBSOCKET) {
       window.scrollBy(0, window.innerHeight);
     });
 
-    // ⏱ Espera alternativa de 3 segundos
     await new Promise(resolve => setTimeout(resolve, 3000));
 
     console.log("🔎 Extracting ads...");
-    const ads = await page.$$eval('div[data-pagelet^="FeedUnit_"]', items =>
+    const ads = await page.$$eval('div[role="listitem"]', items =>
       items.slice(0, 25).map(ad => ({
         text: ad.innerText,
-        html: ad.innerHTML,
+        html: ad.innerHTML
       }))
     );
 
@@ -49,5 +48,6 @@ if (!BROWSER_WEBSOCKET) {
     process.exit(1);
   }
 })();
+
 
 

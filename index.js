@@ -15,7 +15,6 @@ if (!BROWSER_WEBSOCKET) {
     });
 
     const page = await browser.newPage();
-
     console.log("🌐 Navigating to Meta Ads Library...");
     await page.goto('https://www.facebook.com/ads/library/?active_status=all&ad_type=all&country=ALL&q=pix&search_type=keyword_unordered', {
       waitUntil: 'networkidle2',
@@ -23,37 +22,25 @@ if (!BROWSER_WEBSOCKET) {
     });
 
     console.log("✅ Page loaded. Scrolling...");
-    await page.evaluate(() => {
-      window.scrollBy(0, 6000);
-    });
-    await new Promise(resolve => setTimeout(resolve, 5000)); // substitui waitForTimeout
-
-    console.log("🧪 Dumping HTML for debug...");
-    const html = await page.content();
-    console.log(html);
+    for (let i = 0; i < 3; i++) {
+      await page.evaluate(() => window.scrollBy(0, window.innerHeight));
+      await new Promise(resolve => setTimeout(resolve, 2000));
+    }
 
     console.log("🔎 Extracting ads...");
-    let ads = await page.$$eval('div[role="listitem"]', items =>
+    await page.waitForSelector('div[role="listitem"]', { timeout: 45000 });
+
+    const ads = await page.$$eval('div[role="listitem"]', items =>
       items.slice(0, 25).map(ad => ({
-        text: ad.innerText || null,
+        title: ad.innerText || null,
         link: window.location.href,
       }))
     );
 
     if (ads.length === 0) {
-      console.warn("⚠️ Nenhum anúncio via 'div[role=\"listitem\"]'. Tentando seletor alternativo...");
-      ads = await page.$$eval('a[href*="/ads/library/"]', items =>
-        items.slice(0, 25).map(ad => ({
-          text: ad.innerText || null,
-          href: ad.href || null,
-        }))
-      );
-    }
-
-    if (ads.length === 0) {
-      console.warn("⚠️ Nenhum anúncio extraído.");
+      console.warn("⚠️ No ads extracted.");
     } else {
-      console.log("📦 Anúncios extraídos:", ads);
+      console.log("📦 Ads extracted:", ads);
     }
 
     await browser.close();
@@ -62,4 +49,5 @@ if (!BROWSER_WEBSOCKET) {
     process.exit(1);
   }
 })();
+
 

@@ -1,8 +1,0 @@
-{
-  "name": "ads-finder-scraper",
-  "version": "1.0.0",
-  "type": "module",
-  "dependencies": {
-    "puppeteer-core": "^22.0.0"
-  }
-}
